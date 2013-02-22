@@ -26,7 +26,7 @@ class RailTimeScraper
 		$this->cache = \tdt\cache\Cache::getInstance(array('system'=>'MemCache'));
 		list($this->stop_names, $this->inverted_stop_names) = $this->cache->get('stop_names');
 		if( !$this->stop_names ){
-			list($this->stop_names, $this->inverted_stop_names) = get_stop_names(); // external helper function
+			list($this->stop_names, $this->inverted_stop_names) = \Helper::get_stop_names(); // external helper function
 			$this->cache->set('stop_names', array($this->stop_names,$this->inverted_stop_names), FALSE, 60*60*24);
 		}
 	}
