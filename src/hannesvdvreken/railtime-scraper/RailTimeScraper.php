@@ -136,7 +136,8 @@ class RailTimeScraper
 		
 		// build url & get data
 		$url .= '?' . http_build_query($params) ;
-		$result = CURL::http_request($url);
+		$curl = new Curl();
+		$result = $curl->simple_get($url);
 		
 		$matches = array();
 		preg_match_all('/\[([A-Z,\ ]*[A-Z,]*)?\ *\d+\]/si', $result->data, $matches ); 
@@ -245,7 +246,8 @@ class RailTimeScraper
 		
 		// build url & get data
 		$url .= '?' . http_build_query($params) ;
-		$result = CURL::http_request($url);
+		$curl = new Curl();
+		$result = $curl->simple_get($url);
 		
 		// parse data
 		$matches1 = array();
@@ -291,5 +293,3 @@ class RailTimeScraper
 		return $service_stops;
 	}
 }
-
-?>
