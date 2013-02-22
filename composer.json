@@ -1,0 +1,14 @@
+{
+    "name": "hannesvdvreken/railtime-scraper",
+    "description": "A bunch of scripts, using MemCache and cURL to create an asynchronous scraper worker",
+    "keywords": ["input", "railtime", "scraper", "NMBS", "SNCB", "json", "iRail", "mobile"],
+    "homepage": "https://github.com/irail",
+    "type": "library",
+    "license": "AGPLv3",
+    "require": {
+    	"php": ">=5.4.0",
+    	"tdt/exceptions": "dev-master",
+        "tdt/cache": "dev-master",
+        "laravel/curl": "dev-master"
+    }
+}
