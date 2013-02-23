@@ -7,7 +7,7 @@
  *
  */
 
-namespace 'hannesvdvreken\railtime-scraper';
+namespace hannesvdvreken\railtimescraper;
 
 /*
  * Custom railtime scraper.
