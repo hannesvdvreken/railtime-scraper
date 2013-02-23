@@ -7,7 +7,7 @@
  *
  */
 
-namespace hannesvdvreken\railtime-scraper;
+namespace 'hannesvdvreken\railtime-scraper';
 
 class Helper {
 
