@@ -10,5 +10,10 @@
 		"tdt/cache": "dev-master",
 		"laravel/curl": "dev-master"
 	},
-    "minimum-stability" : "dev"
+    "minimum-stability" : "dev",
+    "autoload": {
+		"psr-0": {
+			"hannesvdvreken\\railtimescraper\\": "src/"
+		}
+	}
 }
