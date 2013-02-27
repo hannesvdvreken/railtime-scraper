@@ -9,7 +9,7 @@
 
 namespace hannesvdvreken\railtimescraper;
 
-/*
+/**
  * Custom railtime scraper.
  * - get_stop() returns all stopping vehicles at given stop for given day
  * - get_trip() returns a full schedule for a given trip on a given day
@@ -31,7 +31,7 @@ class RailTimeScraper
 		}
 	}
 
-	/*
+	/**
 	 * @param $sid: stop_id defined by railtime 
 	 * @param $date: date in YYYYMMDD
 	 *
@@ -41,34 +41,32 @@ class RailTimeScraper
 	 */
 	public function get_stop( $sid, $date )
 	{
-		// set timezone
+		/* set timezone */
 		$temp_tz = date_default_timezone_get();
 		date_default_timezone_set($this->tz);
 
-		// validate stop_id
+		/* validate stop_id */
 		if (!array_key_exists((string)$sid, $this->stop_names))
 		{
 			throw new Exception("stop id $sid not supported");
 		}
-		// get stop name (for railtime requests)
+		/* get stop name (for railtime requests) */
 		$sn = $this->stop_names[$sid][0];
 		$service_stops = array();
 		$directions = array('D','A');
 
-		// set time of the day to zero
+		/* set time of the day to zero */
 		$d = date_parse_from_format ( 'Ymd' , $date );
 		$iso_timezone_suffix = substr( date('c'), 19 );
 		$date = sprintf( "%04d-%02d-%02dT00:00:00$iso_timezone_suffix", $d['year'], $d['month'], $d['day'] );
 		unset($d);
 
-		// loop all 15 mins intervals
-		// from 4:15 till 01:15
+		/* loop all 15 mins intervals
+		   from 4:15 till 01:15 */
 		for ($h=4; $h<=25; $h++)
 		{
 			for ($m=0; $m<60; $m+=15)
 			{
-				//if ($h != 8 && $m != 15){ break; }
-
 				$d = date('c', strtotime($date . ' + '.$h.' hours + '.$m.' minutes'));
 				
 				foreach ($directions as $direction)
@@ -90,13 +88,13 @@ class RailTimeScraper
 			}
 		}
 
-		// reset timezone
+		/* reset timezone */
 		date_default_timezone_set($temp_tz);
 
 		return $service_stops;
 	}
 
-	/*
+	/**
 	 * @param $tid: vehicle_id defined by railtime 
 	 * @param $date: date in yyyymmdd
 	 * 
@@ -105,11 +103,13 @@ class RailTimeScraper
 	 */
 	public function get_trip( $tid, $date )
 	{
+		/* get the departure and arrival times */
 		$direction = 'D';
 		$service_stops	 = $this->get_trip_in_direction($tid, $date, $direction);
 		$direction = 'A';
 		$service_stops_arr = $this->get_trip_in_direction($tid, $date, $direction);
 
+		/* combine the two output arrays*/
 		foreach ( array_keys($service_stops_arr) as $service_stop_id )
 		{
 			if( $service_stops_arr[$service_stop_id]['arrival_time'] ){
@@ -123,45 +123,65 @@ class RailTimeScraper
 		return $service_stops;
 	}
 
+	/**
+	 * @param $tid: trip_id defined by railtime
+	 * @param $date: time in ISO 8601
+	 * @param $da: enum('D','A') (Departure / Arrival)
+	 *
+	 * involves one single curl request
+	 * usually invoked by get_trip($tid,$date)
+	 */
 	private function get_trip_in_direction( $tid, $date, $da )
 	{
 		$url  = 'http://www.railtime.be/mobile/HTML/TrainDetail.aspx';
 		
-		// add parameters
+		/* add parameters */
 		$params = array();
 		$params['l']   = 'NL' ;
 		$params['dt']  = date('d/m/Y', strtotime($date));
 		$params['tid'] = $tid ;
 		$params['da']  = $da  ; // enum('D','A') departure or arrival
 		
-		// build url & get data
+		/* build url & get data */
 		$url .= '?' . http_build_query($params) ;
-		$curl = new Curl();
+		$curl = new \Curl();
 		$result = $curl->simple_get($url);
+
+		if (preg_match('/Deze\ gegevens\ zijn\ niet\ langer\ beschikbaar\./', $result))
+		{
+			/* out of reach for RailTime */
+			return [];
+		}
+		if (preg_match('/Deze\ trein\ bestaat\ niet\ voor\ de\ gevraagde\ datum\./', $result))
+		{
+			/* no train data for this id on this date */
+			return [];
+		}
+
 		
 		$matches = array();
-		preg_match_all('/\[([A-Z,\ ]*[A-Z,]*)?\ *\d+\]/si', $result->data, $matches ); 
-		//optional type: if cancelled, railtime drops train type
+		preg_match_all('/\[([A-Z,\ ]*[A-Z,]*)?\ *\d+\]/si', $result, $matches ); 
+		/* optional type: if cancelled, railtime drops train type */
 		
 		if( $matches[1][0] != ""){
-			$type =  $matches[1][0] ;
+			$type = $matches[1][0] ;
 		}
-		// parse to array of stops
+		/* parse to array of stops */
 		$matches = array();
-		preg_match_all('/\<tr\ class.+?\>(.+?)\<\/tr\>/si', $result->data, $matches );
+		preg_match_all('/\<tr\ class.+?\>(.+?)\<\/tr\>/si', $result, $matches );
 		
 		$stops = array();
-		// process array of stops
+		/* process array of stops */
 		foreach( $matches[1] as &$stop ){
 			$regex = '/\<label.*?\>(.*?)\<\/label\>/' ;
 			$matches2 = array();
 			preg_match_all($regex, $stop, $matches2 );
 			
-			// get station name and if possible station id
+			/* get station name and if possible station id */
 			if( count($matches2[1]) == 3){
 				$sid = FALSE ;
 				$stop_name = html_entity_decode( array_shift( $matches2[1] ), NULL, "UTF-8"); // making code compatible for php version < 5.4.0
-				// TODO handle this: get station country and company by name
+				/* TODO handle this: get station country and company by name */
 			}else{
 				$matches3 = array();
 				$regex = '/\<a.*?&amp;sid=(\d+?)&.*?\>(.*?)\<\/a\>/' ;
@@ -170,7 +190,7 @@ class RailTimeScraper
 				$sid = reset($matches3[1]) ;
 			}
 			
-			// get some more info about the timing
+			/* get some more info about the timing */
 			$cancelled = FALSE ;
 			if( preg_match('/TrainDeleted/', $stop)){ // <label class="CenterTrainDeleted">*stop_name*</label>
 				$cancelled = TRUE ;
@@ -182,11 +202,11 @@ class RailTimeScraper
 				$time = mktime( $hour, $minutes, 0, date('m',time()),date('d',time()),date('Y',time()) );
 			}
 			
-			// fill in the result array
+			/* fill in the result array */
 			$s = array();
 			
 			if ( $cancelled ){
-				// in the case a trip isn't reaching a stop, no time nor delay has been given.
+				/* in the case a trip isn't reaching a stop, no time nor delay has been given. */
 				$s['cancelled'] = 1 ;
 			} else {
 				if ( $da == 'A'){
@@ -214,7 +234,7 @@ class RailTimeScraper
 		return $stops ;
 	}
 
-	/*
+	/**
 	 * @param $sid: stop_id defined by railtime
 	 * @param $sn: according to $sid
 	 * @param $time: time in ISO 8601
@@ -235,7 +255,7 @@ class RailTimeScraper
 		$dt = Date('d/m/Y',strtotime($time));
 		$ti = Date('H:i',strtotime($time));
 
-		// add parameters
+		/* add parameters */
 		$params = array();
 		$params['l']   = 'NL' ;
 		$params['sid'] = $sid ; // station id
@@ -244,26 +264,26 @@ class RailTimeScraper
 		$params['ti']  = $ti  ; // time
 		$params['da']  = $da  ; // enum('D','A') departure or arrival
 		
-		// build url & get data
+		/* build url & get data */
 		$url .= '?' . http_build_query($params) ;
-		$curl = new Curl();
+		$curl = new \Curl();
 		$result = $curl->simple_get($url);
 		
-		// parse data
+		/* parse data */
 		$matches1 = array();
-		preg_match_all('/\<tr\ class.+?\>(.+?)\<\/tr\>/si', $result->data, $matches1 );
+		preg_match_all('/\<tr\ class.+?\>(.+?)\<\/tr\>/si', $result, $matches1 );
 		
 		$service_stops = array();
 		
 		foreach (@end($matches1) as $vehicle){
 			$v = array();
-			// do some parsing
+			/* do some parsing */
 			$matches2 = array();
 			preg_match_all('/\<label.*?\>(.*?)\<\/label\>/si', $vehicle, $matches2 );
 			$matches3 = array();
 			preg_match_all('/&amp;tid=(\d+)&amp;/si', $vehicle, $matches3 );
 			
-			// fill in the variables
+			/* fill in the variables */
 			$vars = @$matches2[1] ;
 			$tid = reset(@end($matches3));
 
@@ -279,8 +299,8 @@ class RailTimeScraper
 			}
 			$v['headsign'] = html_entity_decode($vars[2], ENT_HTML5, "UTF-8");
 			
-			// Don't drop this data because it is used for displaying 
-			// an entry at the right spot even if the vehicle is cancelled
+			/* Don't drop this data because it is used for displaying 
+			   an entry at the right spot even if the vehicle is cancelled */
 			if ($da == 'D'){
 				$v['departure_time'] = $planned ;
 			} else {

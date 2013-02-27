@@ -1,6 +1,6 @@
 {
 	"name": "hannesvdvreken/railtime-scraper",
-	"description": "A bunch of scripts, using MemCache and cURL to create an asynchronous scraper worker",
+	"description": "A bunch of scripts, using MemCache and cURL to create scraper package",
 	"keywords": ["input", "railtime", "scraper", "NMBS", "SNCB", "json", "iRail", "mobile"],
 	"homepage": "https://github.com/irail",
 	"type": "library",
