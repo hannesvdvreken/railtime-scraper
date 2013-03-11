@@ -63,26 +63,35 @@ class RailTimeScraper
 
 		/* loop all 15 mins intervals
 		   from 4:15 till 01:15 */
-		for ($h=4; $h<=25; $h++)
+		$max       = date('c', strtotime($date . ' + '. '25' .' hours + '. '15' .' minutes'));
+
+		foreach ($directions as $direction)
 		{
-			for ($m=0; $m<60; $m+=15)
+			$overwrite_key = $direction=='D'?'departure_time':'arrival_time';
+
+			$curr_date = $date;
+			$Hcoloni = '04:15'; # H:i (string format)
+			$d = preg_replace('/T00:00/', "T$Hcoloni", $curr_date);
+
+			while ($d < $max)
 			{
-				$d = date('c', strtotime($date . ' + '.$h.' hours + '.$m.' minutes'));
-				
-				foreach ($directions as $direction)
+				$result = $this->get_stop_by_time($sid,$sn,$d,$direction);
+				if ($result['end_time'] < $Hcoloni ) {
+					$curr_date = date('c', strtotime($curr_date . ' + '. '24' .' hours'));
+				}
+
+				$Hcoloni = $result['end_time'];
+				$d = preg_replace('/T00:00/', "T$Hcoloni", $curr_date);
+				$result = &$result['service_stops'];
+
+				foreach (array_keys($result) as $service_stop_id)
 				{
-					$overwrite_key = $direction=='D'?'departure_time':'arrival_time';
-					$result = $this->get_stop_by_time($sid,$sn,$d,$direction);
-					
-					foreach (array_keys($result) as $service_stop_id)
-					{
-						if ( array_key_exists($service_stop_id, $service_stops) && $result[$service_stop_id][$overwrite_key] ){
-							$service_stops[$service_stop_id][$overwrite_key] =
-								$result[$service_stop_id][$overwrite_key];
-						} else {
-							$service_stops[$service_stop_id] = 
-								$result[$service_stop_id];
-						}
+					if ( array_key_exists($service_stop_id, $service_stops) ){
+						$service_stops[$service_stop_id][$overwrite_key] =
+							$result[$service_stop_id][$overwrite_key];
+					} else {
+						$service_stops[$service_stop_id] = 
+							$result[$service_stop_id];
 					}
 				}
 			}
@@ -157,7 +166,6 @@ class RailTimeScraper
 			/* no train data for this id on this date */
 			return [];
 		}
-
 		
 		$matches = array();
 		preg_match_all('/\[([A-Z,\ ]*[A-Z,]*)?\ *\d+\]/si', $result, $matches ); 
@@ -269,11 +277,15 @@ class RailTimeScraper
 		$curl = new \Curl();
 		$result = $curl->simple_get($url);
 		
+		$time_match = [];
+		preg_match_all('/\(\d\d:\d\d\ -\ (\d\d:\d\d)\)/si', $result, $time_match );
+		$end_time = $time_match[1][0];
+
 		/* parse data */
 		$matches1 = array();
 		preg_match_all('/\<tr\ class.+?\>(.+?)\<\/tr\>/si', $result, $matches1 );
 		
-		$service_stops = array();
+		$service_stops = [];
 		
 		foreach (@end($matches1) as $vehicle){
 			$v = array();
@@ -310,6 +322,6 @@ class RailTimeScraper
 			$service_stops[$tid] = $v ;
 		}
 
-		return $service_stops;
+		return ['end_time' => $end_time, 'service_stops' => $service_stops];
 	}
 }
