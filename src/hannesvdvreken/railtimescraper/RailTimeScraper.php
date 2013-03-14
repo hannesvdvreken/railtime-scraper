@@ -63,7 +63,7 @@ class RailTimeScraper
 
 		/* loop all 15 mins intervals
 		   from 4:15 till 01:15 */
-		$max       = date('c', strtotime($date . ' + '. '25' .' hours + '. '15' .' minutes'));
+		$max = date('c', strtotime($date . ' + '. '25' .' hours + '. '15' .' minutes'));
 
 		foreach ($directions as $direction)
 		{
@@ -100,7 +100,7 @@ class RailTimeScraper
 		/* reset timezone */
 		date_default_timezone_set($temp_tz);
 
-		return $service_stops;
+		return array_values($service_stops);
 	}
 
 	/**
@@ -129,7 +129,7 @@ class RailTimeScraper
 			}
 		}
 
-		return $service_stops;
+		return array_values($service_stops);
 	}
 
 	/**
@@ -207,7 +207,7 @@ class RailTimeScraper
 				$hour	= intval($hour);
 				$minutes = intval($minutes);
 				
-				$time = mktime( $hour, $minutes, 0, date('m',time()),date('d',time()),date('Y',time()) );
+				$time = mktime( $hour, $minutes, 0, date('m',strtotime($date)),date('d',strtotime($date)),date('Y',strtotime($date)) );
 			}
 			
 			/* fill in the result array */
@@ -218,15 +218,15 @@ class RailTimeScraper
 				$s['cancelled'] = 1 ;
 			} else {
 				if ( $da == 'A'){
-					$s['arrival_delay'] = intval($matches2[1][1]) * 60 ;
-					$s['arrival_time'] = $time;
+					$s['arrival_delay'] = (intval($matches2[1][1]) * 60) ;
+					$s['arrival_time'] = date('c',$time);
 				} else {
-					$s['departure_delay'] = intval($matches2[1][1]) * 60 ;
-					$s['departure_time'] = $time;
+					$s['departure_delay'] = (intval($matches2[1][1]) * 60) ;
+					$s['departure_time'] = date('c',$time);
 				}
 			}
 			
-			$s['sequence'] = count($stops) + 1;
+			$s['sequence'] = (count($stops) + 1);
 			$s['stop'] = $stop_name;
 			if ($sid == FALSE) {
 				if (!array_key_exists($stop_name, $this->inverted_stop_names) ){
@@ -236,7 +236,21 @@ class RailTimeScraper
 				}
 			}
 			$s['sid'] = $sid;
+			$s['tid'] = $tid;
+			$s['date'] = date('Ymd', strtotime($date));
+			$s['type'] = trim($type);
+			$s['agency'] = 'NMBS-SNCB';
+
 			$stops[$sid] = $s;
+			
+			if ($stop == end($matches[1]) ){
+				$headsign = $s['stop'];
+				unset($s);
+
+				foreach ( $stops as &$s ) {
+					$s['headsign'] = $headsign;
+				}
+			}
 		}
 		
 		return $stops ;
@@ -314,11 +328,12 @@ class RailTimeScraper
 			/* Don't drop this data because it is used for displaying 
 			   an entry at the right spot even if the vehicle is cancelled */
 			if ($da == 'D'){
-				$v['departure_time'] = $planned ;
+				$v['departure_time'] = date('c', strtotime($planned)) ;
 			} else {
-				$v['arrival_time'] = $planned ;
+				$v['arrival_time'] = date('c', strtotime($planned)) ;
 			}
-			
+			$v['tid'] = $tid ;
+			$v['sid'] = $sid ;
 			$service_stops[$tid] = $v ;
 		}
 
