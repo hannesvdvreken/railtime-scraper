@@ -48,7 +48,7 @@ class RailTimeScraper
 		/* validate stop_id */
 		if (!array_key_exists((string)$sid, $this->stop_names))
 		{
-			throw new Exception("stop id $sid not supported");
+			return FALSE;
 		}
 		/* get stop name (for railtime requests) */
 		$sn = $this->stop_names[$sid][0];
@@ -239,7 +239,7 @@ class RailTimeScraper
 			$s['stop'] = $stop_name;
 			if ($sid == FALSE) {
 				if (!array_key_exists($stop_name, $this->inverted_stop_names) ){
-					throw new Exception("stop id not found for stop $stop_name");
+					return FALSE;
 				}else{
 					$sid = $this->inverted_stop_names[$stop_name];
 				}
@@ -278,7 +278,7 @@ class RailTimeScraper
 	{
 		if ( $da != 'D' && $da != 'A' )
 		{
-			throw new Exception('Invalid $da parameter (required D or A, departure or arrival)');
+			return FALSE;
 		}
 
 		$url  = 'http://www.railtime.be/mobile/HTML/StationDetail.aspx';
