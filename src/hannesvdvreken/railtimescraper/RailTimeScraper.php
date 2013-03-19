@@ -160,7 +160,7 @@ class RailTimeScraper
 		$url .= '?' . http_build_query($params) ;
 		$curl = new \Curl();
 		$result = $curl->simple_get($url);
-		if (!is_null($curl->error)) {
+		if (!is_null($curl->error_code)) {
 			$curl->setDefaults();
 			return FALSE;
 		}
@@ -299,7 +299,7 @@ class RailTimeScraper
 		$url .= '?' . http_build_query($params) ;
 		$curl = new \Curl();
 		$result = $curl->simple_get($url);
-		if (!is_null($curl->error)) {
+		if (!is_null($curl->error_code)) {
 			$curl->setDefaults();
 			return FALSE;
 		}
