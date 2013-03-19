@@ -76,6 +76,7 @@ class RailTimeScraper
 			while ($d < $max)
 			{
 				$result = $this->get_stop_by_time($sid,$sn,$d,$direction);
+				if ($result === FALSE) { return FALSE; }
 				if ($result['end_time'] < $Hcoloni ) {
 					$curr_date = date('c', strtotime($curr_date . ' + '. '24' .' hours'));
 				}
@@ -114,9 +115,13 @@ class RailTimeScraper
 	{
 		/* get the departure and arrival times */
 		$direction = 'D';
-		$service_stops	 = $this->get_trip_in_direction($tid, $date, $direction);
+		$service_stops = $this->get_trip_in_direction($tid, $date, $direction);
 		$direction = 'A';
 		$service_stops_arr = $this->get_trip_in_direction($tid, $date, $direction);
+
+		if (!$service_stops || !$service_stops_arr){
+			return FALSE;
+		}
 
 		/* combine the two output arrays*/
 		foreach ( array_keys($service_stops_arr) as $service_stop_id )
@@ -155,6 +160,10 @@ class RailTimeScraper
 		$url .= '?' . http_build_query($params) ;
 		$curl = new \Curl();
 		$result = $curl->simple_get($url);
+		if (!is_null($curl->error)) {
+			$curl->setDefaults();
+			return FALSE;
+		}
 
 		if (preg_match('/Deze\ gegevens\ zijn\ niet\ langer\ beschikbaar\./', $result))
 		{
@@ -290,6 +299,10 @@ class RailTimeScraper
 		$url .= '?' . http_build_query($params) ;
 		$curl = new \Curl();
 		$result = $curl->simple_get($url);
+		if (!is_null($curl->error)) {
+			$curl->setDefaults();
+			return FALSE;
+		}
 		
 		$time_match = [];
 		preg_match_all('/\(\d\d:\d\d\ -\ (\d\d:\d\d)\)/si', $result, $time_match );
