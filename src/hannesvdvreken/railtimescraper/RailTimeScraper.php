@@ -119,7 +119,7 @@ class RailTimeScraper
 		$direction = 'A';
 		$service_stops_arr = $this->get_trip_in_direction($tid, $date, $direction);
 
-		if (!$service_stops || !$service_stops_arr){
+		if ($service_stops === FALSE || $service_stops_arr === FALSE){
 			return FALSE;
 		}
 
