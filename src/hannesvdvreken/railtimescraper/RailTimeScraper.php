@@ -348,6 +348,7 @@ class RailTimeScraper
 			$v['tid'] = $tid ;
 			$v['sid'] = $sid ;
 			$v['agency'] = 'NMBS-SNCB';
+			$v['date'] = date('Ymd',strtotime($time));
 			$service_stops[$tid] = $v ;
 		}
 
