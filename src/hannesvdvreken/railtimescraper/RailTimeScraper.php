@@ -305,6 +305,7 @@ class RailTimeScraper
 		
 		$time_match = [];
 		preg_match_all('/\(\d\d:\d\d\ -\ (\d\d:\d\d)\)/si', $result, $time_match );
+		if (!isset($time_match[1][0])) return ['end_time' => '01:30', 'service_stops' => []];
 		$end_time = $time_match[1][0];
 
 		/* parse data */
