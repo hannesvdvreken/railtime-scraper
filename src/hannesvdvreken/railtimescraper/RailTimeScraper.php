@@ -238,16 +238,16 @@ class RailTimeScraper
 			$s['sequence'] = (count($stops) + 1);
 			$s['stop'] = $stop_name;
 			if ($sid == FALSE) {
-				if (!array_key_exists($stop_name, $this->inverted_stop_names) ){
-					return FALSE;
-				}else{
+				if (array_key_exists($stop_name, $this->inverted_stop_names) ){
 					$sid = $this->inverted_stop_names[$stop_name];
 				}
 			}
-			$s['sid'] = $sid;
+			if ($sid)
+				$s['sid'] = $sid;
 			$s['tid'] = $tid;
 			$s['date'] = date('Ymd', strtotime($date));
-			$s['type'] = trim($type);
+			if (isset($type)) 
+				$s['type'] = trim($type);
 			$s['agency'] = 'NMBS-SNCB';
 
 			$stops[$sid] = $s;
@@ -261,7 +261,6 @@ class RailTimeScraper
 				}
 			}
 		}
-		
 		return $stops ;
 	}
 
