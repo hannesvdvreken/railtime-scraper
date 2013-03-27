@@ -239,7 +239,7 @@ class RailTimeScraper
 			$s['stop'] = $stop_name;
 			if ($sid == FALSE) {
 				if (array_key_exists($stop_name, $this->inverted_stop_names) ){
-					$sid = $this->inverted_stop_names[$stop_name];
+					$sid = strval($this->inverted_stop_names[$stop_name]);
 				}
 			}
 			if ($sid)
