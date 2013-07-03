@@ -11,24 +11,20 @@ namespace hannesvdvreken\railtimescraper;
 
 /**
  * Custom railtime scraper.
- * - get_stop() returns all stopping vehicles at given stop for given day
- * - get_trip() returns a full schedule for a given trip on a given day
+ * - stop() returns all stopping vehicles at given stop for given day
+ * - trip() returns a full schedule for a given trip on a given day
  */
 class RailTimeScraper
 {
-	private $tz = 'CET';
-	private $cache;
-	private $stop_names = NULL;
-	private $inverted_stop_names = NULL;
+	public $stop_names;
+	public $inverted_stop_names;
 
-	public function __construct()
+	public function __construct($sn = array(), $isn = array())
 	{
-		$this->cache = \tdt\cache\Cache::getInstance(['system'=>'MemCache']);
-		list($this->stop_names, $this->inverted_stop_names) = $this->cache->get('stop_names');
-		if( !$this->stop_names ){
-			list($this->stop_names, $this->inverted_stop_names) = Helper::get_stop_names(); // external helper function
-			$this->cache->set('stop_names', [$this->stop_names,$this->inverted_stop_names], FALSE, 60*60*24);
-		}
+
+		$this->stop_names =          $sn ;
+		$this->inverted_stop_names = $isn;
+
 	}
 
 	/**
@@ -39,20 +35,17 @@ class RailTimeScraper
 	 * for every 15 minutes in the given day
 	 * times two: departure times and arrival times
 	 */
-	public function get_stop( $sid, $date )
+	public function stop( $sid, $date )
 	{
-		/* set timezone */
-		$temp_tz = date_default_timezone_get();
-		date_default_timezone_set($this->tz);
 
 		/* validate stop_id */
-		if (!array_key_exists((string)$sid, $this->stop_names))
+		if (!array_key_exists($sid, $this->stop_names))
 		{
-			return FALSE;
+			return array();
 		}
-		/* get stop name (for railtime requests) */
-		$sn = $this->stop_names[$sid][0];
-		$service_stops = [];
+		
+		$sn = $this->stop_names[$sid];
+		$service_stops = array();
 		$directions = ['D','A'];
 
 		/* set time of the day to zero */
@@ -63,7 +56,7 @@ class RailTimeScraper
 
 		/* loop all 15 mins intervals
 		   from 4:15 till 01:15 */
-		$max = date('c', strtotime($date . ' + '. '25' .' hours + '. '15' .' minutes'));
+		$max = date('c', strtotime($date . ' + 25 hours + 15 minutes'));
 
 		foreach ($directions as $direction)
 		{
@@ -98,9 +91,6 @@ class RailTimeScraper
 			}
 		}
 
-		/* reset timezone */
-		date_default_timezone_set($temp_tz);
-
 		return array_values($service_stops);
 	}
 
@@ -111,7 +101,7 @@ class RailTimeScraper
 	 * involves 2 curl requests:
 	 * one for departure times, one for arrival times
 	 */
-	public function get_trip( $tid, $date )
+	public function trip( $tid, $date )
 	{
 		/* get the departure and arrival times */
 		$direction = 'D';
@@ -150,7 +140,7 @@ class RailTimeScraper
 		$url  = 'http://www.railtime.be/mobile/HTML/TrainDetail.aspx';
 		
 		/* add parameters */
-		$params = [];
+		$params = array();
 		$params['l']   = 'NL' ;
 		$params['dt']  = date('d/m/Y', strtotime($date));
 		$params['tid'] = $tid ;
@@ -168,15 +158,15 @@ class RailTimeScraper
 		if (preg_match('/Deze\ gegevens\ zijn\ niet\ langer\ beschikbaar\./', $result))
 		{
 			/* out of reach for RailTime */
-			return [];
+			return array();
 		}
 		if (preg_match('/Deze\ trein\ bestaat\ niet\ voor\ de\ gevraagde\ datum\./', $result))
 		{
 			/* no train data for this id on this date */
-			return [];
+			return array();
 		}
 		
-		$matches = [];
+		$matches = array();
 		preg_match_all('/\[([A-Z,\ ]*[A-Z,]*)?\ *\d+\]/si', $result, $matches ); 
 		/* optional type: if cancelled, railtime drops train type */
 		
@@ -184,14 +174,14 @@ class RailTimeScraper
 			$type = $matches[1][0] ;
 		}
 		/* parse to array of stops */
-		$matches = [];
+		$matches = array();
 		preg_match_all('/\<tr\ class.+?\>(.+?)\<\/tr\>/si', $result, $matches );
 		
-		$stops = [];
+		$stops = array();
 		/* process array of stops */
 		foreach( $matches[1] as &$stop ){
 			$regex = '/\<label.*?\>(.*?)\<\/label\>/' ;
-			$matches2 = [];
+			$matches2 = array();
 			preg_match_all($regex, $stop, $matches2 );
 			
 			/* get station name and if possible station id */
@@ -200,7 +190,7 @@ class RailTimeScraper
 				$stop_name = html_entity_decode( array_shift( $matches2[1] ), NULL, "UTF-8"); // making code compatible for php version < 5.4.0
 				/* TODO handle this: get station country and company by name */
 			}else{
-				$matches3 = [];
+				$matches3 = array();
 				$regex = '/\<a.*?&amp;sid=(\d+?)&.*?\>(.*?)\<\/a\>/' ;
 				preg_match_all( $regex, $stop, $matches3 );
 				$stop_name = reset($matches3[2]);
@@ -220,7 +210,7 @@ class RailTimeScraper
 			}
 			
 			/* fill in the result array */
-			$s = [];
+			$s = array();
 			
 			if ( $cancelled ){
 				/* in the case a trip isn't reaching a stop, no time nor delay has been given. */
@@ -237,7 +227,7 @@ class RailTimeScraper
 			
 			$s['sequence'] = (count($stops) + 1);
 			$s['stop'] = $stop_name;
-			if ($sid == FALSE) {
+			if (!$sid) {
 				if (array_key_exists($stop_name, $this->inverted_stop_names) ){
 					$sid = strval($this->inverted_stop_names[$stop_name]);
 				}
@@ -286,7 +276,7 @@ class RailTimeScraper
 		$ti = Date('H:i',strtotime($time));
 
 		/* add parameters */
-		$params = [];
+		$params = array();
 		$params['l']   = 'NL' ;
 		$params['sid'] = $sid ; // station id
 		$params['sn']  = $sn  ; // station name
@@ -303,23 +293,23 @@ class RailTimeScraper
 			return FALSE;
 		}
 		
-		$time_match = [];
+		$time_match = array();
 		preg_match_all('/\(\d\d:\d\d\ -\ (\d\d:\d\d)\)/si', $result, $time_match );
-		if (!isset($time_match[1][0])) return ['end_time' => '01:30', 'service_stops' => []];
+		if (!isset($time_match[1][0])) return ['end_time' => '01:30', 'service_stops' => array()];
 		$end_time = $time_match[1][0];
 
 		/* parse data */
-		$matches1 = [];
+		$matches1 = array();
 		preg_match_all('/\<tr\ class.+?\>(.+?)\<\/tr\>/si', $result, $matches1 );
 		
-		$service_stops = [];
+		$service_stops = array();
 		
 		foreach (@end($matches1) as $vehicle){
-			$v = [];
+			$v = array();
 			/* do some parsing */
-			$matches2 = [];
+			$matches2 = array();
 			preg_match_all('/\<label.*?\>(.*?)\<\/label\>/si', $vehicle, $matches2 );
-			$matches3 = [];
+			$matches3 = array();
 			preg_match_all('/&amp;tid=(\d+)&amp;/si', $vehicle, $matches3 );
 			
 			/* fill in the variables */
