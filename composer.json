@@ -7,7 +7,6 @@
 	"license": "AGPLv3",
 	"require": {
 		"php": ">=5.4.0",
-		"tdt/cache": "dev-master",
 		"laravel/curl": "dev-master"
 	},
     "minimum-stability" : "dev",
