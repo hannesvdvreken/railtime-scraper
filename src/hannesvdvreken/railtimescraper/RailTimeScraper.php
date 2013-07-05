@@ -116,7 +116,7 @@ class RailTimeScraper
 		/* combine the two output arrays*/
 		foreach ( array_keys($service_stops_arr) as $service_stop_id )
 		{
-			if( $service_stops_arr[$service_stop_id]['arrival_time'] ){
+			if( isset($service_stops_arr[$service_stop_id]['arrival_time']) ){
 				$service_stops[$service_stop_id]['arrival_time'] = 
 					$service_stops_arr[$service_stop_id]['arrival_time'];
 				$service_stops[$service_stop_id]['arrival_delay'] = 
