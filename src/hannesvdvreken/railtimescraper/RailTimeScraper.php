@@ -206,12 +206,12 @@ class RailTimeScraper
 				$hour	= intval($hour);
 				$minutes = intval($minutes);
 				
-				$time = mktime( $hour, $minutes, 0, date('m',strtotime($date)),date('d',strtotime($date)),date('Y',strtotime($date)) );
+				$time = mktime( $hour, $minutes, 0, date('m',strtotime($date)), date('d',strtotime($date)), date('Y',strtotime($date)) );
 			
 			        // change date when after midnight
 				if ($hour < 2 && $minutes < 45)
 				{
-					$time = mktime( $hour, $minutes, 0, date('m',strtotime("$date + 1 day")),date('d',strtotime("$date + 1 day")),date('Y',strtotime("$date + 1 day")) );
+					$time = mktime( $hour, $minutes, 0, date('m',strtotime("$date + 1 day")), date('d',strtotime("$date + 1 day")), date('Y',strtotime("$date + 1 day")) );
 				}
 			}
 			
