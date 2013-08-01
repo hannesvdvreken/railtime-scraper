@@ -199,7 +199,7 @@ class RailTimeScraper
 			
 			/* get some more info about the timing */
 			$cancelled = FALSE ;
-			if( preg_match('/TrainDeleted/', $stop)){ // <label class="CenterTrainDeleted">*stop_name*</label>
+			if(preg_match('/TrainDeleted/', $stop) || preg_match('/Graylabel/', $stop)){ // <label class="CenterTrainDeleted">*stop_name*</label>
 				$cancelled = TRUE ;
 			}else{
 				list( $hour, $minutes ) = explode(':',$matches2[1][0]);
